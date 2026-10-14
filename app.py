@@ -2,34 +2,25 @@ import streamlit as st
 import pymupdf
 from groq import Groq
 import json
+import os
 
 # Setări vizuale pentru platformă
-st.set_page_config(page_title="Examora - Platformă Inteligentă de Studiu", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="EXAMORA", layout="centered")
 
-# --- DESIGN CSS AVANSAT PENTRU UN ASPECT FASCINANT ȘI MODERN ---
+# --- DESIGN CSS AVANSAT ---
 st.markdown("""
     <style>
-    /* Fundal general și fonturi */
     .stApp {
         background-color: #0b0f19;
         color: #f3f4f6;
     }
-
-    /* Carduri de preț și secțiuni */
     .pricing-card {
         background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
         border: 1px solid #374151;
         border-radius: 16px;
         padding: 30px;
         text-align: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        transition: transform 0.3s ease;
     }
-    .pricing-card:hover {
-        transform: translateY(-5px);
-        border-color: #6366f1;
-    }
-
     .pro-card {
         background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
         border: 2px solid #818cf8;
@@ -38,18 +29,12 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
     }
-
-    /* Titluri și elemente vizuale */
     h1, h2, h3 {
         color: #ffffff;
-        font-family: 'Inter', sans-serif;
     }
-
-    /* Butoane personalizate */
     .stButton>button {
         border-radius: 10px;
         font-weight: 600;
-        transition: all 0.3s ease;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -61,8 +46,6 @@ if "utilizator" not in st.session_state:
     st.session_state.utilizator = None
 if "plan_pro" not in st.session_state:
     st.session_state.plan_pro = False
-if "stare_plata" not in st.session_state:
-    st.session_state.stare_plata = False  # True când e în pagina de checkout
 if "intrebari" not in st.session_state:
     st.session_state.intrebari = []
 if "test_trimis" not in st.session_state:
@@ -70,7 +53,6 @@ if "test_trimis" not in st.session_state:
 if "modal_google" not in st.session_state:
     st.session_state.modal_google = False
 
-# Stare pentru Examen Oral
 if "chat_oral" not in st.session_state:
     st.session_state.chat_oral = []
 if "examen_oral_pornit" not in st.session_state:
@@ -78,7 +60,6 @@ if "examen_oral_pornit" not in st.session_state:
 if "text_curs_memorie" not in st.session_state:
     st.session_state.text_curs_memorie = ""
 
-# Preluăm cheia API securizată
 try:
     API_KEY_GROQ = st.secrets["GROQ_API_KEY"]
 except:
@@ -170,7 +151,6 @@ else:
         st.session_state.autentificat = False
         st.session_state.utilizator = None
         st.session_state.plan_pro = False
-        st.session_state.stare_plata = False
         st.session_state.intrebari = []
         st.session_state.chat_oral = []
         st.session_state.examen_oral_pornit = False
@@ -339,73 +319,64 @@ else:
                         st.session_state.examen_oral_pornit = False
                         st.rerun()
 
-    # --- 3. PLAN PRO & CHECKOUT SECURIZAT ---
+    # --- 3. PLAN PRO & STRIPE PAYMENT LINK ---
     elif meniu == "💎 Plan PRO":
-        # Dacă utilizatorul a apăsat pe butonul de plată, afișăm ecranul de Checkout Stripe
-        if st.session_state.stare_plata and not st.session_state.plan_pro:
-            st.title("🔒 Checkout Securizat Examora PRO")
-            st.write("Finalizează abonamentul lunar de **6 EUR** pentru acces nelimitat.")
+        st.title("💎 Deblochează Examora PRO")
+        st.markdown(
+            "<p style='color: #9ca3af;'>Treci la nivelul următor și pregătește-te pentru sesiune fără stres.</p>",
+            unsafe_allow_html=True)
 
-            with st.form("form_plata"):
-                st.text_input("Nume de pe card", "Alexandru Popescu")
-                st.text_input("Număr card", "4242 •••• •••• 4242")
-                col_exp, col_cvc = st.columns(2)
-                with col_exp:
-                    st.text_input("Data expirării", "12/28")
-                with col_cvc:
-                    st.text_input("CVC / CVV", "123")
+        col_f, col_p = st.columns(2)
 
-                st.markdown("---")
-                btn_plateste = st.form_submit_button("💳 Plătește 6.00 EUR și Activează PRO", type="primary")
+        with col_f:
+            st.markdown("""
+                <div class="pricing-card">
+                    <h3>Planul Free</h3>
+                    <p style='color: #9ca3af; font-size: 24px; font-weight: bold;'>0 EUR</p>
+                    <p>✓ Teste grilă limitate</p>
+                    <p>✓ Cursuri de dimensiuni mici</p>
+                    <p>✓ Examen oral de bază</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-                if btn_plateste:
-                    st.session_state.plan_pro = True
-                    st.session_state.stare_plata = False
-                    st.success("Plată efectuată cu succes! Contul tău este acum PRO.")
-                    st.balloons()
-                    st.rerun()
+        with col_p:
+            st.markdown("""
+                <div class="pro-card">
+                    <h3>Planul PRO 👑</h3>
+                    <p style='color: #818cf8; font-size: 24px; font-weight: bold;'>6 EUR / lună</p>
+                    <p>✨ Grile nelimitate din orice materie</p>
+                    <p>✨ Cărți și tratate integrale în PDF</p>
+                    <p>✨ Profesor AI nelimitat + Note oficiale</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-            if st.button("⬅️ Înapoi la Planuri"):
-                st.session_state.stare_plata = False
-                st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        else:
-            st.title("💎 Deblochează Examora PRO")
-            st.markdown(
-                "<p style='color: #9ca3af;'>Treci la nivelul următor și pregătește-te pentru sesiune fără stres.</p>",
-                unsafe_allow_html=True)
+            if not st.session_state.plan_pro:
+                # Link-ul tău real de plată Stripe integrat direct
+                stripe_payment_url = "https://buy.stripe.com/test_cNi5kCcr03aWbKC8aCak000"
 
-            col_f, col_p = st.columns(2)
-
-            with col_f:
-                st.markdown("""
-                    <div class="pricing-card">
-                        <h3>Planul Free</h3>
-                        <p style='color: #9ca3af; font-size: 24px; font-weight: bold;'>0 EUR</p>
-                        <p>✓ Teste grilă limitate</p>
-                        <p>✓ Cursuri de dimensiuni mici</p>
-                        <p>✓ Examen oral de bază</p>
+                st.markdown(
+                    f"""
+                    <div style="text-align: center;">
+                        <a href="{stripe_payment_url}" target="_blank">
+                            <button style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                                💳 Plătește 6 EUR/lună prin Stripe
+                            </button>
+                        </a>
                     </div>
-                """, unsafe_allow_html=True)
-
-            with col_p:
-                st.markdown("""
-                    <div class="pro-card">
-                        <h3>Planul PRO 👑</h3>
-                        <p style='color: #818cf8; font-size: 24px; font-weight: bold;'>6 EUR / lună</p>
-                        <p>✨ Grile nelimitate din orice materie</p>
-                        <p>✨ Cărți și tratate integrale în PDF</p>
-                        <p>✨ Profesor AI nelimitat + Note oficiale</p>
-                    </div>
-                """, unsafe_allow_html=True)
+                    """,
+                    unsafe_allow_html=True
+                )
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                if not st.session_state.plan_pro:
-                    if st.button("🚀 Treci la PRO (6 EUR/lună)", type="primary", use_container_width=True):
-                        st.session_state.stare_plata = True
-                        st.rerun()
-                else:
-                    st.success("✅ Ai deja abonamentul PRO activ!")
+                if st.button("🛠️ Simulează Plata Reușită (Pentru Teste)", use_container_width=True):
+                    st.session_state.plan_pro = True
+                    st.success("Plată simulată cu succes! Contul este acum PRO.")
+                    st.balloons()
+                    st.rerun()
+            else:
+                st.success("✅ Ai deja abonamentul PRO activ!")
 
     # --- 4. SETĂRI CONT ---
     elif meniu == "⚙️ Setări Cont":
